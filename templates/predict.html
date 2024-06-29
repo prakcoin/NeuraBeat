@@ -1,0 +1,16 @@
+<html>
+    <head>
+      <title>Prediction Results</title>
+    </head>
+    <body>
+      <h1>Prediction Results</h1>
+      <p>Predicted Class: {{ predicted_class }}</p>
+      <p>Probability: {{ probability }}</p>
+      <h2>Other Classes</h2>
+      <ul>
+        {% for class_name, prob in class_probs %}
+          <li>{{ class_name }}: {{ prob }}</li>
+        {% endfor %}
+      </ul>
+    </body>
+  </html>
