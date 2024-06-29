@@ -1,10 +1,8 @@
 import torch
 import torchaudio
 import torchaudio.transforms as T
-import torchvision.transforms as transforms
-import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
+import librosa
 from flask import Flask, request, render_template
 from torchvision.transforms import v2
 from model.model import ClassificationModel
@@ -38,7 +36,8 @@ def process_audio(song):
                                 v2.Normalize((mean,), (std,))
                                 ])
 
-    song_waveform, _ = torchaudio.load(song)
+    song_waveform, w_sr = librosa.load(song)
+    song_waveform = librosa.resample(song_waveform, orig_sr=w_sr, target_sr=sr)
     mel_spec = mel_spec_transform(torch.from_numpy(song_waveform))
     log_mel_spec = log_mel_spec_transform(mel_spec)
     mel_spec_tensor = log_mel_spec.unsqueeze(0)
@@ -51,7 +50,7 @@ def predict():
     song = request.files['audio']
 
     # Process image and make prediction
-    image_tensor = process_audio(song)
+    image_tensor = process_audio(song).unsqueeze(0)
     output = model(image_tensor)
 
     # Get class probabilities
