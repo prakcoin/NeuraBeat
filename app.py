@@ -11,11 +11,10 @@ from model.model import ClassificationModel
 
 app = Flask(__name__)
 
-checkpoint_path = 'model_checkpoint.pt'
+checkpoint_path = 'model/model_checkpoint.pt'
 checkpoint = torch.load(checkpoint_path, map_location=torch.device('cpu'))
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = ClassificationModel()
-
 model.load_state_dict(checkpoint['model_state_dict'])
 model.to(device)
 model.eval()

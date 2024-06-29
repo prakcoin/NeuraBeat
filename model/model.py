@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from separableconv import SeparableConv2d
-from positionalencoding import PositionalEncoding2d
-from residualblock import ResidualBlock 
+from .positionalencoding import PositionalEncoding2d
+from .residualblock import ResidualBlock
+from .separableconv import SeparableConv2d
     
 class ClassificationModel(nn.Module):
     def __init__(self):
