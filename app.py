@@ -7,7 +7,7 @@ import torch.nn.functional as F
 import numpy as np
 from flask import Flask, request, render_template
 from torchvision.transforms import v2
-from model import ClassificationModel
+from model.model import ClassificationModel
 
 app = Flask(__name__)
 
