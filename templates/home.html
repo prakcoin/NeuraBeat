@@ -1,12 +1,23 @@
-<html>
-    <head>
-      <title>NeuraBeat</title>
-    </head>
-    <body>
-      <h1>NeuraBeat Audio Classification</h1>
-      <form method="POST" enctype="multipart/form-data" action="/predict">
-        <input type="file" name="image">
-        <input type="submit" value="Predict">
-      </form>
-    </body>
-  </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuraBeat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <h1>NeuraBeat Audio Classification</h1>
+    </header>
+    <main>
+        <form method="POST" enctype="multipart/form-data" action="/predict">
+            <input type="file" name="audio" id="audio" accept=".mp3">
+            <input type="submit" value="Predict">
+        </form>
+    </main>
+    <footer>
+        <p>&copy; 2024 NeuraBeat</p>
+    </footer>
+</body>
+</html>

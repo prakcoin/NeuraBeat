@@ -1,16 +1,27 @@
-<html>
-    <head>
-      <title>Prediction Results</title>
-    </head>
-    <body>
-      <h1>Prediction Results</h1>
-      <p>Predicted Class: {{ predicted_class }}</p>
-      <p>Probability: {{ probability }}</p>
-      <h2>Other Classes</h2>
-      <ul>
-        {% for class_name, prob in class_probs %}
-          <li>{{ class_name }}: {{ prob }}</li>
-        {% endfor %}
-      </ul>
-    </body>
-  </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediction Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Prediction Results</h1>
+    </header>
+    <main>
+        <p>Predicted Class: {{ predicted_class }}</p>
+        <p>Probability: {{ probability }}</p>
+        <h2>Other Classes</h2>
+        <ul>
+            {% for class_name, prob in class_probs %}
+            <li>{{ class_name }}: {{ prob }}</li>
+            {% endfor %}
+        </ul>
+    </main>
+    <footer>
+        <p>&copy; 2024 NeuraBeat</p>
+    </footer>
+</body>
+</html>
