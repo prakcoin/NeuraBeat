@@ -1,3 +1,4 @@
+import time
 import torch
 import torchaudio
 import torchaudio.transforms as T
@@ -35,13 +36,15 @@ def process_audio(song):
                                 v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)]),
                                 v2.Normalize((mean,), (std,))
                                 ])
+    song_waveform, w_sr = torchaudio.load(song)
+    song_waveform = T.Resample(orig_freq=w_sr, new_freq=sr)(song_waveform)
+    song_waveform = torch.mean(song_waveform, dim=0).unsqueeze(0)
 
-    song_waveform, w_sr = librosa.load(song)
-    song_waveform = librosa.resample(song_waveform, orig_sr=w_sr, target_sr=sr)
-    mel_spec = mel_spec_transform(torch.from_numpy(song_waveform))
+    mel_spec = mel_spec_transform(song_waveform)
     log_mel_spec = log_mel_spec_transform(mel_spec)
     mel_spec_tensor = log_mel_spec.unsqueeze(0)
     mel_spec_tensor = image_transforms(mel_spec_tensor)
+
     return mel_spec_tensor
 
 @app.route('/predict', methods=['POST'])
@@ -50,7 +53,7 @@ def predict():
     song = request.files['audio']
 
     # Process image and make prediction
-    image_tensor = process_audio(song).unsqueeze(0)
+    image_tensor = process_audio(song)
     output = model(image_tensor)
 
     # Get class probabilities
