@@ -1,9 +1,7 @@
-import time
 import torch
 import torchaudio
 import torchaudio.transforms as T
 import torch.nn.functional as F
-import librosa
 from flask import Flask, request, render_template
 from torchvision.transforms import v2
 from model.model import ClassificationModel
@@ -19,7 +17,6 @@ model.to(device)
 model.eval()
 
 class_names = ['Electronic', 'Experimental', 'Folk', 'Hip-Hop', 'Instrumental', 'International', 'Pop', 'Rock']
-genre_to_number = {'Electronic': 0, 'Experimental': 1, 'Folk': 2, 'Hip-Hop': 3, 'Instrumental': 4, 'International': 5, 'Pop': 6, 'Rock': 7}
 
 sr=16000
 n_mels=128
@@ -28,14 +25,15 @@ hop_length=512
 mean=6.5304
 std=11.8924
 
-def process_audio(song):
-    mel_spec_transform = T.MelSpectrogram(sample_rate=sr, n_mels=n_mels, n_fft=n_fft, hop_length=hop_length)
-    log_mel_spec_transform = T.AmplitudeToDB()
+mel_spec_transform = T.MelSpectrogram(sample_rate=sr, n_mels=n_mels, n_fft=n_fft, hop_length=hop_length)
+log_mel_spec_transform = T.AmplitudeToDB()
 
-    image_transforms = v2.Compose([
-                                v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)]),
-                                v2.Normalize((mean,), (std,))
-                                ])
+image_transforms = v2.Compose([
+                            v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)]),
+                            v2.Normalize((mean,), (std,))
+                            ])
+
+def process_audio(song):
     song_waveform, w_sr = torchaudio.load(song)
     song_waveform = T.Resample(orig_freq=w_sr, new_freq=sr)(song_waveform)
     song_waveform = torch.mean(song_waveform, dim=0).unsqueeze(0)
