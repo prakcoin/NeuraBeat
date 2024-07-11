@@ -4,7 +4,7 @@ import torchaudio.transforms as T
 import torch.nn.functional as F
 from flask import Flask, request, render_template
 from torchvision.transforms import v2
-from model.model import ClassificationModel
+from model.model import ClassificationModel, EmbeddingModel
 
 app = Flask(__name__)
 
