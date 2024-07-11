@@ -8,12 +8,18 @@ from model.model import ClassificationModel, EmbeddingModel
 
 app = Flask(__name__)
 
-model_path = 'model/classification_model.pt'
+classification_model_path = 'model/classification_model.pt'
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = ClassificationModel()
-model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
-model.to(device)
-model.eval()
+classification_model = ClassificationModel()
+classification_model.load_state_dict(torch.load(classification_model_path, map_location=torch.device('cpu')))
+classification_model.to(device)
+classification_model.eval()
+
+embedding_model_path = 'model/embedding_model.pt'
+embedding_model = EmbeddingModel()
+embedding_model.load_state_dict(torch.load(embedding_model_path, map_location=torch.device('cpu')))
+embedding_model.to(device)
+embedding_model.eval()
 
 class_names = ['Electronic', 'Experimental', 'Folk', 'Hip-Hop', 'Instrumental', 'International', 'Pop', 'Rock']
 
@@ -44,14 +50,14 @@ def process_audio(song):
 
     return mel_spec_tensor
 
-@app.route('/predict', methods=['POST'])
-def predict():
+@app.route('/classify_predict', methods=['POST'])
+def classify_predict():
     # Get uploaded image file
     song = request.files['audio']
 
     # Process image and make prediction
     image_tensor = process_audio(song)
-    output = model(image_tensor)
+    output = classification_model(image_tensor)
 
     # Get class probabilities
     probabilities = F.softmax(output, dim=1)
@@ -69,8 +75,12 @@ def predict():
     class_probs.sort(key=lambda x: x[1], reverse=True)
 
     # Render HTML page with prediction results
-    return render_template('predict.html', class_probs=class_probs,
+    return render_template('classify_predict.html', class_probs=class_probs,
                            predicted_class=predicted_class, probability=probability)
+
+@app.route('/classify')  
+def classification():  
+    return render_template('classify.html')
 
 @app.route('/')  
 def home():  

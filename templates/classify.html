@@ -8,13 +8,13 @@
 </head>
 <body>
     <header>
-        <h1>NeuraBeat</h1>
+        <h1>NeuraBeat Audio Classification</h1>
     </header>
     <main>
-
-        <a href="/embed" class="button">Similarity</a>
-        <a href="/classify" class="button">Classification</a>
-
+        <form method="POST" enctype="multipart/form-data" action="/classify_predict">
+            <input type="file" name="audio" id="audio" accept=".mp3">
+            <input type="submit" value="Predict">
+        </form>
     </main>
     <footer>
         <p>&copy; 2024 NeuraBeat</p>
