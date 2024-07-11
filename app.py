@@ -38,7 +38,7 @@ image_transforms = v2.Compose([
                             v2.Normalize((mean,), (std,))
                             ])
 
-def process_audio(song):
+def preprocess(song):
     song_waveform, w_sr = torchaudio.load(song)
     song_waveform = T.Resample(orig_freq=w_sr, new_freq=sr)(song_waveform)
     song_waveform = torch.mean(song_waveform, dim=0).unsqueeze(0)
@@ -50,37 +50,32 @@ def process_audio(song):
 
     return mel_spec_tensor
 
-@app.route('/classify_predict', methods=['POST'])
-def classify_predict():
-    # Get uploaded image file
+@app.route('/process_file', methods=['POST'])
+def process_file():
     song = request.files['audio']
+    action = request.form['action']
+    image_tensor = preprocess(song)
+    
+    if action == 'Predict':
+        output = classification_model(image_tensor)
 
-    # Process image and make prediction
-    image_tensor = process_audio(song)
-    output = classification_model(image_tensor)
+        probabilities = F.softmax(output, dim=1)
+        probabilities = probabilities.detach().numpy()[0]
+        class_index = probabilities.argmax()
 
-    # Get class probabilities
-    probabilities = F.softmax(output, dim=1)
-    probabilities = probabilities.detach().numpy()[0]
+        predicted_class = class_names[class_index]
+        probability = probabilities[class_index]
 
-    # Get the index of the highest probability
-    class_index = probabilities.argmax()
+        class_probs = list(zip(class_names, probabilities))
+        class_probs.sort(key=lambda x: x[1], reverse=True)
 
-    # Get the predicted class and probability
-    predicted_class = class_names[class_index]
-    probability = probabilities[class_index]
-
-    # Sort class probabilities in descending order
-    class_probs = list(zip(class_names, probabilities))
-    class_probs.sort(key=lambda x: x[1], reverse=True)
-
-    # Render HTML page with prediction results
-    return render_template('classify_predict.html', class_probs=class_probs,
+        return render_template('classify.html', class_probs=class_probs,
                            predicted_class=predicted_class, probability=probability)
+    elif action == 'Embed':
+        embedding = embedding_model(image_tensor)
+        return render_template('embed.html')
 
-@app.route('/classify')  
-def classification():  
-    return render_template('classify.html')
+
 
 @app.route('/')  
 def home():  

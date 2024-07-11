@@ -3,18 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeuraBeat</title>
+    <title>Prediction Results</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <header>
-        <h1>NeuraBeat Audio Classification</h1>
+        <h1>Prediction Results</h1>
     </header>
     <main>
-        <form method="POST" enctype="multipart/form-data" action="/classify_predict">
-            <input type="file" name="audio" id="audio" accept=".mp3">
-            <input type="submit" value="Predict">
-        </form>
+        <p>Predicted Class: {{ predicted_class }}</p>
+        <p>Probability: {{ probability }}</p>
+        <h2>Other Classes</h2>
+        <ul>
+            {% for class_name, prob in class_probs %}
+            <li>{{ class_name }}: {{ prob }}</li>
+            {% endfor %}
+        </ul>
+        <a href="/">Back</a>
     </main>
     <footer>
         <p>&copy; 2024 NeuraBeat</p>
