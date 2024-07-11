@@ -2,11 +2,20 @@ import torch
 import torchaudio
 import torchaudio.transforms as T
 import torch.nn.functional as F
+import psycopg2
 from flask import Flask, request, render_template
 from torchvision.transforms import v2
 from model.model import ClassificationModel, EmbeddingModel
+from db import insert_embedding, embedding_exists, retrieve_similar_embeddings
 
 app = Flask(__name__)
+
+conn = psycopg2.connect(
+    dbname=os.getenv('DB_NAME'),
+    user=os.getenv('DB_USER'),
+    password=os.getenv('DB_PASSWORD'),
+    host=os.getenv('DB_HOST')
+)
 
 classification_model_path = 'model/classification_model.pt'
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -73,6 +82,11 @@ def process_file():
                            predicted_class=predicted_class, probability=probability)
     elif action == 'Embed':
         embedding = embedding_model(image_tensor)
+        if (not embedding_exists(conn, embedding)):
+            insert_embedding(conn, embedding)
+        
+        similar_embeddings = retrieve_similar_embeddings(conn, embedding)
+
         return render_template('embed.html')
 
 
