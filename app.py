@@ -1,4 +1,5 @@
 import torch
+import random as rand
 import torchaudio
 import torchaudio.transforms as T
 import torch.nn.functional as F
@@ -6,7 +7,7 @@ import psycopg2
 from flask import Flask, request, render_template
 from torchvision.transforms import v2
 from model.model import ClassificationModel, EmbeddingModel
-from db import insert_embedding, embedding_exists, retrieve_similar_embeddings
+from utils.db import insert_embedding, embedding_exists, retrieve_similar_embeddings
 
 app = Flask(__name__)
 
@@ -36,9 +37,13 @@ def preprocess(song, sr=16000, n_mels=128, n_fft=2048, hop_length=512, mean=6.53
 
     song_waveform, w_sr = torchaudio.load(song)
     song_waveform = T.Resample(orig_freq=w_sr, new_freq=sr)(song_waveform)
-    song_waveform = torch.mean(song_waveform, dim=0).unsqueeze(0)
+    song_waveform = torch.mean(song_waveform, dim=0)
+    
+    song_len = len(song_waveform)
+    bound = rand.randint(0, song_len - chunk_length)
+    song_waveform = song_waveform[bound:bound + chunk_length]
 
-    song_waveform = song_waveform[0:chunk_length]
+    song_waveform = song_waveform.unsqueeze(0)
 
     mel_spec = T.MelSpectrogram(sample_rate=sr, n_mels=n_mels, n_fft=n_fft, hop_length=hop_length)(song_waveform)
     log_mel_spec =  T.AmplitudeToDB()(mel_spec)
@@ -77,9 +82,9 @@ def process_file():
         # if (not embedding_exists(conn, embedding)):
         #     insert_embedding(conn, embedding)
         
-        similar_embeddings = retrieve_similar_embeddings(conn, embedding)
+        embeddings_with_distances = retrieve_similar_embeddings(conn, embedding)
 
-        return render_template('embed.html', similar_embeddings=similar_embeddings)
+        return render_template('embed.html', embeddings_with_distances=embeddings_with_distances)
 
 @app.route('/')  
 def home():  
