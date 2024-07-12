@@ -46,14 +46,21 @@ def embedding_exists(conn, embedding_vector):
 def retrieve_similar_embeddings(conn, embedding_vector):
     embedding_array = '[' + ','.join(map(str, embedding_vector)) + ']'
     
-    sql = f"SELECT * FROM song_embeddings ORDER BY embedding <-> '{embedding_array}' LIMIT 5;"
+    sql = f"""
+    SELECT song_name, genre, (embedding <-> '{embedding_array}') AS distance
+    FROM song_embeddings
+    ORDER BY embedding <-> '{embedding_array}'
+    LIMIT 5;
+    """
     
     cursor = conn.cursor()
     cursor.execute(sql)
     rows = cursor.fetchall()
-    embeddings = [(row[1], row[2]) for row in rows]
+    
+    embeddings_with_distances = [(row[0], row[1], row[2]) for row in rows]
     cursor.close()
-    return embeddings
+    return embeddings_with_distances
+
 
 def create_file_genre_map(mp3_data_path, csv_path):
     file_genre_map = {}  # Dictionary to store file-genre mapping

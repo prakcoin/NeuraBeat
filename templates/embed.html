@@ -12,8 +12,8 @@
     </header>
     <main>
         <ul>
-            {% for song_name, genre in similar_embeddings %}
-            <li>{{ song_name }}: {{genre}}</li>
+            {% for song_name, genre, distance in embeddings_with_distances %}
+            <li>{{ song_name }}: {{genre}}: {{distance}}</li>
             {% endfor %}
         </ul>
         <a href="/">Back</a>
