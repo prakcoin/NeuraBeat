@@ -11,7 +11,12 @@
         <h1>Similarity Results</h1>
     </header>
     <main>
-
+        <ul>
+            {% for song_name, genre in similar_embeddings %}
+            <li>{{ song_name }}: {{genre}}</li>
+            {% endfor %}
+        </ul>
+        <a href="/">Back</a>
     </main>
     <footer>
         <p>&copy; 2024 NeuraBeat</p>

@@ -12,9 +12,16 @@ import os
 import numpy as np
 from collections import defaultdict
 
-# mp3_data_path = '/mnt/c/Users/User/Documents/NeuraBeat/fma_small/'
-# csv_path = '/mnt/c/Users/User/Documents/NeuraBeat/metadata/fma_metadata/tracks.csv'
-# embedding_model_path = 'model/embedding_model.pt'
+mp3_data_path = '/mnt/c/Users/User/Documents/NeuraBeat/fma_small/'
+csv_path = '/mnt/c/Users/User/Documents/NeuraBeat/metadata/fma_metadata/tracks.csv'
+embedding_model_path = 'model/embedding_model.pt'
+
+conn = psycopg2.connect(
+    dbname=os.getenv('DB_NAME'),
+    user=os.getenv('DB_USER'),
+    password=os.getenv('DB_PASSWORD'),
+    host=os.getenv('DB_HOST')
+)
 
 def insert_embedding(conn, song_name, genre, embedding_vector):
     cursor = conn.cursor()
@@ -65,7 +72,7 @@ def create_file_genre_map(mp3_data_path, csv_path):
     
     return file_genre_map
 
-def insert_all_embeddings(model, mp3_data_path, csv_path, file_genre_map, conn):
+def insert_all_embeddings(model_path, mp3_data_path, csv_path, file_genre_map, conn):
     cur = conn.cursor()
     genre_counts = defaultdict(int)
     max_songs_per_genre = 990
@@ -75,6 +82,12 @@ def insert_all_embeddings(model, mp3_data_path, csv_path, file_genre_map, conn):
     hop_length=512
     mean=6.5304
     std=11.8924
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = EmbeddingModel()
+    model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+    model.to(device)
+    model.eval()
 
     chunk_duration = 3
     full_song_length = 27
@@ -118,9 +131,13 @@ def insert_all_embeddings(model, mp3_data_path, csv_path, file_genre_map, conn):
                     cur.execute("""
                         INSERT INTO song_embeddings (song_name, genre, embedding)
                         VALUES (%s, %s, %s)
+                        ON CONFLICT (embedding) DO NOTHING;
                     """, (song_name, genre, embedding))
                     conn.commit()
-                    print("Inserted track", song_name)
+                    if cur.rowcount == 0:
+                        print("Skipped: Embedding already exists in the database.")
+                    else:
+                        print("Inserted track", song_name)
 
                 genre_counts[genre] += 1
 
