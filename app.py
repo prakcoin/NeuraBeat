@@ -1,12 +1,6 @@
-import torch
-import random as rand
-import torchaudio
-import torchaudio.transforms as T
 import torch.nn.functional as F
 import psycopg2
 from flask import Flask, request, render_template
-from torchvision.transforms import v2
-from model.model import ClassificationModel, EmbeddingModel
 from utils.db import insert_embedding, embedding_exists, retrieve_similar_embeddings
 from utils.utils import preprocess, load_model
 
