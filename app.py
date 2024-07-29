@@ -44,7 +44,7 @@ def process_file():
         return render_template('classify.html', class_probs=class_probs,
                            predicted_class=predicted_class, probability=probability)
     elif action == 'Embed':
-        embedding_model = load_model('model/embedding_model.pt', 'embedding')
+        embedding_model = load_model('model/embedding_model_loss.pt', 'embedding')
         embedding = embedding_model(image_tensor)
         embedding = embedding.flatten().detach().cpu().numpy().tolist()
         # if (not embedding_exists(conn, embedding)):
