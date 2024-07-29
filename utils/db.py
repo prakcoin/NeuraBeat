@@ -1,6 +1,10 @@
 import psycopg2
 from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT # <-- ADD THIS LINE
+import os
+import sys
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
 from model.model import EmbeddingModel
 import torchaudio.transforms as T
 from torchvision.transforms import v2
@@ -8,13 +12,11 @@ from librosa.util import fix_length
 import librosa
 import torch
 import csv
-import os
-import numpy as np
 from collections import defaultdict
 
 mp3_data_path = '/mnt/c/Users/User/Documents/NeuraBeat/fma_small/'
 csv_path = '/mnt/c/Users/User/Documents/NeuraBeat/metadata/fma_metadata/tracks.csv'
-embedding_model_path = 'model/embedding_model.pt'
+embedding_model_path = '../model/embedding_model_loss.pt'
 
 conn = psycopg2.connect(
     dbname=os.getenv('DB_NAME'),
@@ -22,6 +24,32 @@ conn = psycopg2.connect(
     password=os.getenv('DB_PASSWORD'),
     host=os.getenv('DB_HOST')
 )
+
+def create_table(conn):
+    cursor = conn.cursor()
+    cursor.execute("""
+                    CREATE TABLE song_embeddings (
+                        id bigserial PRIMARY KEY,
+                        song_name TEXT NOT NULL,
+                        genre TEXT,
+                        embedding vector(128)
+                    );
+                    """)
+
+    cursor.execute("""
+                    ALTER TABLE song_embeddings ADD CONSTRAINT unique_embedding UNIQUE (embedding);
+                    """)
+
+    conn.commit()
+    cursor.close()
+
+def delete_table(conn):
+    cursor = conn.cursor()
+    cursor.execute("""
+                   DROP TABLE song_embeddings;
+                   """)
+    conn.commit()
+    cursor.close()
 
 def insert_embedding(conn, song_name, genre, embedding_vector):
     cursor = conn.cursor()
@@ -63,13 +91,12 @@ def retrieve_similar_embeddings(conn, embedding_vector):
 
 
 def create_file_genre_map(mp3_data_path, csv_path):
-    file_genre_map = {}  # Dictionary to store file-genre mapping
+    file_genre_map = {} 
     track_ids = [file_name.split('.')[0].lstrip('0') for file_name in os.listdir(mp3_data_path) if file_name.endswith('.mp3')]
 
-    # Read CSV file and create file-genre mapping
     with open(csv_path, 'r') as csvfile:
         csvreader = csv.reader(csvfile)
-        next(csvreader) # Skip headers
+        next(csvreader) 
         next(csvreader)
         next(csvreader)
         for row in csvreader:
@@ -100,57 +127,56 @@ def insert_all_embeddings(model_path, mp3_data_path, csv_path, file_genre_map, c
     full_song_length = 27
     num_chunks = full_song_length // chunk_duration
 
-    with open(csv_path, 'r') as csvfile:
-        for mp3_file in os.listdir(mp3_data_path):
-            track_id = mp3_file.split('.')[0].lstrip('0')
-            genre = file_genre_map[track_id]
-            if genre_counts[genre] >= max_songs_per_genre:
+    for mp3_file in os.listdir(mp3_data_path):
+        track_id = mp3_file.split('.')[0].lstrip('0')
+        genre = file_genre_map[track_id]
+        if genre_counts[genre] >= max_songs_per_genre:
+            continue
+
+        try:    
+            audio, sr = librosa.load(os.path.join(mp3_data_path, mp3_file))
+            if (len(audio) / sr) < full_song_length:
+                print(f"Skipped short file: {mp3_file}")
                 continue
+            resampled_audio = librosa.resample(audio, orig_sr=sr, target_sr=target_sr)
+            padded_audio = fix_length(resampled_audio, size=target_sr * full_song_length)
 
-            try:    
-                audio, sr = librosa.load(os.path.join(mp3_data_path, mp3_file))
-                if (len(audio) / sr) < full_song_length:
-                    print(f"Skipped short file: {mp3_file}")
-                    continue
-                resampled_audio = librosa.resample(audio, orig_sr=sr, target_sr=target_sr)
-                padded_audio = fix_length(resampled_audio, size=target_sr * full_song_length)
+            chunk_length = target_sr * chunk_duration
+            for i in range(num_chunks):
+                start_sample = i * chunk_length
+                end_sample = start_sample + chunk_length
+                if end_sample > len(padded_audio):
+                    break
+                audio_chunk = torch.tensor(padded_audio[start_sample:end_sample]).unsqueeze(0)
 
-                chunk_length = target_sr * chunk_duration
-                for i in range(num_chunks):
-                    start_sample = i * chunk_length
-                    end_sample = start_sample + chunk_length
-                    if end_sample > len(padded_audio):
-                        break
-                    audio_chunk = torch.tensor(padded_audio[start_sample:end_sample]).unsqueeze(0)
+                mel_spec = T.MelSpectrogram(sample_rate=target_sr, n_mels=n_mels, n_fft=n_fft, hop_length=hop_length)(audio_chunk)
+                log_mel_spec = T.AmplitudeToDB()(mel_spec)
+                mel_spec_tensor = log_mel_spec.unsqueeze(0)
+                mel_spec_tensor = v2.Compose([v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)]),
+                                            v2.Normalize((mean,), (std,))])(mel_spec_tensor)
 
-                    mel_spec = T.MelSpectrogram(sample_rate=target_sr, n_mels=n_mels, n_fft=n_fft, hop_length=hop_length)(audio_chunk)
-                    log_mel_spec = T.AmplitudeToDB()(mel_spec)
-                    mel_spec_tensor = log_mel_spec.unsqueeze(0)
-                    mel_spec_tensor = v2.Compose([v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)]),
-                                                  v2.Normalize((mean,), (std,))])(mel_spec_tensor)
+                with torch.no_grad():
+                    embedding = model(mel_spec_tensor)
+                embedding = embedding.flatten().detach().cpu().numpy().tolist()
 
-                    with torch.no_grad():
-                        embedding = model(mel_spec_tensor)
-                    embedding = embedding.flatten().detach().cpu().numpy().tolist()
+                song_name = track_id + "_c" + str(i)
 
-                    song_name = track_id + "_c" + str(i)
+                cur.execute("""
+                    INSERT INTO song_embeddings (song_name, genre, embedding)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (embedding) DO NOTHING;
+                """, (song_name, genre, embedding))
+                conn.commit()
+                if cur.rowcount == 0:
+                    print("Skipped: Embedding already exists in the database.")
+                else:
+                    print("Inserted track", song_name)
 
-                    cur.execute("""
-                        INSERT INTO song_embeddings (song_name, genre, embedding)
-                        VALUES (%s, %s, %s)
-                        ON CONFLICT (embedding) DO NOTHING;
-                    """, (song_name, genre, embedding))
-                    conn.commit()
-                    if cur.rowcount == 0:
-                        print("Skipped: Embedding already exists in the database.")
-                    else:
-                        print("Inserted track", song_name)
+            genre_counts[genre] += 1
 
-                genre_counts[genre] += 1
+        except Exception as e:
+            print(e)
+            print(f"Skipped corrupt file: {mp3_file}")
 
-            except Exception as e:
-                print(e)
-                print(f"Skipped corrupt file: {mp3_file}")
-    
     cur.close()
     conn.close()
