@@ -1,4 +1,5 @@
 import torch.nn.functional as F
+import torch
 import psycopg2
 from flask import Flask, request, render_template
 from utils.db import insert_embedding, embedding_exists, retrieve_similar_embeddings
@@ -39,10 +40,11 @@ def process_file():
                            predicted_class=predicted_class, probability=probability)
     elif action == 'Embed':
         embedding_model = load_model('model/embedding_model_loss.pt', 'embedding')
-        embedding = embedding_model(image_tensor)
+        with torch.no_grad():
+            embedding = embedding_model(image_tensor)
         embedding = embedding.flatten().detach().cpu().numpy().tolist()
-        # if (not embedding_exists(conn, embedding)):
-        #     insert_embedding(conn, embedding)
+        if (not embedding_exists(conn, embedding)):
+            insert_embedding(conn, embedding)
         
         embeddings_with_distances = retrieve_similar_embeddings(conn, embedding)
 

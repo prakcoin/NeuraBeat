@@ -26,67 +26,69 @@ conn = psycopg2.connect(
 )
 
 def create_table(conn):
-    cursor = conn.cursor()
-    cursor.execute("""
-                    CREATE TABLE song_embeddings (
-                        id bigserial PRIMARY KEY,
-                        song_name TEXT NOT NULL,
-                        genre TEXT,
-                        embedding vector(128)
-                    );
-                    """)
+    cur = conn.cursor()
+    cur.execute("""
+                CREATE TABLE song_embeddings (
+                    id bigserial PRIMARY KEY,
+                    song_name TEXT NOT NULL,
+                    genre TEXT,
+                    embedding vector(128)
+                );
+                """)
 
-    cursor.execute("""
-                    ALTER TABLE song_embeddings ADD CONSTRAINT unique_embedding UNIQUE (embedding);
-                    """)
+    cur.execute("""
+                ALTER TABLE song_embeddings ADD CONSTRAINT unique_embedding UNIQUE (embedding);
+                """)
 
     conn.commit()
-    cursor.close()
+    cur.close()
 
 def delete_table(conn):
-    cursor = conn.cursor()
-    cursor.execute("""
-                   DROP TABLE song_embeddings;
-                   """)
+    cur = conn.cursor()
+    cur.execute("""
+                DROP TABLE song_embeddings;
+                """)
     conn.commit()
-    cursor.close()
+    cur.close()
 
-def insert_embedding(conn, song_name, genre, embedding_vector):
-    cursor = conn.cursor()
-    cursor.execute("""
+def insert_embedding(conn, song_name, genre, embedding):
+    cur = conn.cursor()
+    cur.execute("""
                 INSERT INTO song_embeddings (song_name, genre, embedding)
                 VALUES (%s, %s, %s)
-            """, (song_name, genre, embedding_vector))
+                ON CONFLICT (embedding) DO NOTHING;
+                """, (song_name, genre, embedding))
     conn.commit()
-    cursor.close()
+    cur.close()
 
-def embedding_exists(conn, embedding_vector):
-    embedding_array = '[' + ','.join(map(str, embedding_vector)) + ']'
-    
-    sql = "SELECT EXISTS(SELECT 1 FROM song_embeddings WHERE embedding = %s);"
-    
-    cursor = conn.cursor()
-    cursor.execute(sql, (embedding_array,))
-    exists = cursor.fetchone()[0]
-    cursor.close()
+def embedding_exists(conn, embedding):
+    cur = conn.cursor()
+    embedding = '[' + ','.join(map(str, embedding)) + ']'
+    cur.execute("""
+                SELECT id, song_name, genre
+                FROM song_embeddings
+                WHERE embedding <-> %s < 0.0005;  -- Adjust the threshold as needed
+                """, (embedding,))
+    exists = cur.fetchone()
+    if exists:
+        print(f"Embedding exists with ID: {exists[0]}, Song Name: {exists[1]}, Genre: {exists[2]}")
+    cur.close()
     return exists
 
-def retrieve_similar_embeddings(conn, embedding_vector):
-    embedding_array = '[' + ','.join(map(str, embedding_vector)) + ']'
+def retrieve_similar_embeddings(conn, embedding):
+    cur = conn.cursor()
+    embedding = '[' + ','.join(map(str, embedding)) + ']'
     
-    sql = f"""
-    SELECT song_name, genre, (embedding <-> '{embedding_array}') AS distance
-    FROM song_embeddings
-    ORDER BY embedding <-> '{embedding_array}'
-    LIMIT 5;
-    """
-    
-    cursor = conn.cursor()
-    cursor.execute(sql)
-    rows = cursor.fetchall()
+    cur.execute("""
+                SELECT song_name, genre, (embedding <-> %s) AS distance
+                FROM song_embeddings
+                ORDER BY embedding <-> %s
+                LIMIT 5;
+                """, (embedding, embedding))
+    rows = cur.fetchall()
     
     embeddings_with_distances = [(row[0], row[1], row[2]) for row in rows]
-    cursor.close()
+    cur.close()
     return embeddings_with_distances
 
 
