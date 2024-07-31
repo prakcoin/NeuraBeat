@@ -23,7 +23,7 @@ def process_file():
     image_tensor = preprocess(song)
     
     if action == 'Predict':
-        classification_model = load_model('model/classification_model.pt', 'classification')
+        classification_model = load_model('model/saved models/classification_model.pt', 'classification')
         output = classification_model(image_tensor)
 
         probabilities = F.softmax(output, dim=1)
@@ -39,12 +39,12 @@ def process_file():
         return render_template('classify.html', class_probs=class_probs,
                            predicted_class=predicted_class, probability=probability)
     elif action == 'Embed':
-        embedding_model = load_model('model/embedding_model_loss.pt', 'embedding')
+        embedding_model = load_model('model/saved models/new_embedding_model.pt', 'embedding')
         with torch.no_grad():
             embedding = embedding_model(image_tensor)
         embedding = embedding.flatten().detach().cpu().numpy().tolist()
-        if (not embedding_exists(conn, embedding)):
-            insert_embedding(conn, embedding)
+        # if (not embedding_exists(conn, embedding)):
+        #     insert_embedding(conn, embedding)
         
         embeddings_with_distances = retrieve_similar_embeddings(conn, embedding)
 

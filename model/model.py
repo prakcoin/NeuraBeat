@@ -58,11 +58,11 @@ class EmbeddingModel(nn.Module):
       )
 
       self.dense_layers = nn.Sequential(
-          nn.Linear(in_features=64, out_features=256, bias=False),
-          nn.SELU(),
-          nn.Linear(in_features=256, out_features=128, bias=False),
-          nn.SELU(),
-          nn.Linear(in_features=128, out_features=64)
+          nn.Linear(in_features=64, out_features=256),
+          nn.ReLU(),
+          nn.Linear(in_features=256, out_features=128),
+          nn.ReLU(),
+          nn.Linear(in_features=128, out_features=128)
       )
 
     def forward(self, x):

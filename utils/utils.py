@@ -16,7 +16,7 @@ def load_model(model_path, model_type):
     model.eval()
     return model
 
-def preprocess(song, sr=16000, n_mels=128, n_fft=2048, hop_length=512, mean=6.5304, std=11.8924):
+def preprocess(song, sr=16000, n_mels=128, n_fft=2048, hop_length=512, mean=6.5226, std=10.4655):
     chunk_duration = 3
     chunk_length = sr * chunk_duration
 
@@ -29,7 +29,8 @@ def preprocess(song, sr=16000, n_mels=128, n_fft=2048, hop_length=512, mean=6.53
     mel_spec = T.MelSpectrogram(sample_rate=sr, n_mels=n_mels, n_fft=n_fft, hop_length=hop_length)(song_waveform)
     log_mel_spec =  T.AmplitudeToDB()(mel_spec)
     mel_spec_tensor = log_mel_spec.unsqueeze(0)
-    mel_spec_tensor = v2.Compose([v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)]),
+    mel_spec_tensor = v2.Compose([v2.Resize((64, 47)),
+                                  v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)]),
                                   v2.Normalize((mean,), (std,))])(mel_spec_tensor)
 
     return mel_spec_tensor
