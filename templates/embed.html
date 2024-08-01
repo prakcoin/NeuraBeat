@@ -12,8 +12,14 @@
     </header>
     <main>
         <ul>
-            {% for song_name, genre, distance in embeddings_with_distances %}
-            <li>{{ song_name }}: {{genre}}: {{distance}}</li>
+            {% for song_name, genre, s3_url, distance in embeddings_with_distances %}
+            <li>
+                {{ song_name }}: {{genre}}: {{distance}}
+                <audio controls>
+                    <source src="{{ s3_url }}" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+            </li>
             {% endfor %}
         </ul>
         <a href="/">Back</a>

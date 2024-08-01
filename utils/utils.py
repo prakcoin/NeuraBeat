@@ -3,14 +3,11 @@ import random as rand
 import torchaudio
 import torchaudio.transforms as T
 from torchvision.transforms import v2
-from model.model import ClassificationModel, EmbeddingModel
+from model.model import EmbeddingModel
 
-def load_model(model_path, model_type):
+def load_model(model_path):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    if model_type == 'classification':
-        model = ClassificationModel()
-    elif model_type == 'embedding':
-        model = EmbeddingModel()
+    model = EmbeddingModel()
     model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
     model.to(device)
     model.eval()
