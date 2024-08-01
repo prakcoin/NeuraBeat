@@ -69,6 +69,19 @@
                 errorMessage.style.display = 'none';
             }
         });
+
+        function resetDropZone() {
+            dropZone.textContent = 'Drag and drop a file here or click to select one';
+            fileInput.value = '';
+        }
+
+        window.addEventListener('load', () => {
+            resetDropZone();
+        });
+
+        window.addEventListener('pageshow', () => {
+            resetDropZone();
+        });
     </script>
 </body>
 </html>
