@@ -1,4 +1,3 @@
-import torch.nn.functional as F
 import torch
 import psycopg2
 import boto3

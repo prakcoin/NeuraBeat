@@ -3,29 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prediction Results</title>
+    <title>Similarity Results</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <header>
         <h1>Similarity Results</h1>
     </header>
-    <main>
-        <ul>
-            {% for song_name, genre, s3_url, distance in embeddings_with_distances %}
-            <li>
-                {{ song_name }}: {{genre}}: {{distance}}
+    <main class="results-container">
+        <h2>Input Song</h2>
+        <div class="input-song-item">
+            <div class="info-grid">
+                <div class="info-item"><strong>Song Name:</strong> {{ embedding[0] }}</div>
+                <div class="info-item"><strong>Genre:</strong> {{ embedding[1] }}</div>
+            </div>
+            <audio controls>
+                <source src="{{ embedding[2] }}" type="audio/mpeg">
+                Your browser does not support the audio element.
+            </audio>
+        </div>
+        
+        <h2>Similar Songs</h2>
+        <ul class="result-list">
+            {% for song_name, genre, s3_url, distance in similar_embeddings %}
+            <li class="result-item">
+                <div class="info-grid">
+                    <div class="info-item"><strong>Song Name:</strong> {{ song_name }}</div>
+                    <div class="info-item"><strong>Genre:</strong> {{ genre }}</div>
+                    <div class="info-item"><strong>Distance:</strong> {{ distance }}</div>
+                </div>
                 <audio controls>
                     <source src="{{ s3_url }}" type="audio/mpeg">
                     Your browser does not support the audio element.
                 </audio>
             </li>
             {% endfor %}
+            <button class="button" onclick="goBack()">Back</button>
         </ul>
-        <a href="/">Back</a>
     </main>
     <footer>
         <p>&copy; 2024 NeuraBeat</p>
     </footer>
+    <script>
+        function goBack() {
+            window.history.back();
+        }
+    </script>
 </body>
 </html>

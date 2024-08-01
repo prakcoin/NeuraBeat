@@ -17,7 +17,7 @@ from collections import defaultdict
 
 mp3_data_path = '/mnt/c/Users/User/Documents/NeuraBeat/fma_small/'
 csv_path = '/mnt/c/Users/User/Documents/NeuraBeat/metadata/fma_metadata/tracks.csv'
-embedding_model_path = '../model/saved models/new_embedding_model.pt'
+embedding_model_path = '../model/saved models/embedding_model.pt'
 bucket_name = 'neurabeat'
 
 conn = psycopg2.connect(
@@ -71,7 +71,7 @@ def embedding_exists(conn, embedding):
     cur.execute("""
                 SELECT id
                 FROM song_embeddings
-                WHERE embedding <-> %s < 0.0005;  -- Adjust the threshold as needed
+                WHERE embedding <-> %s = 0.0;  -- Adjust the threshold as needed
                 """, (embedding,))
     exists = cur.fetchone()
     cur.close()
@@ -82,13 +82,30 @@ def retrieve_similar_embeddings(conn, embedding, s3_client, bucket):
     embedding = '[' + ','.join(map(str, embedding)) + ']'
     
     cur.execute("""
+                SELECT song_name, genre, s3_url
+                FROM song_embeddings
+                WHERE (embedding <-> %s) = 0.0;
+                """, (embedding,))
+
+    song_name, genre, s3_url = cur.fetchone()
+
+    object_name = s3_url.split(f"https://{bucket}.s3.amazonaws.com/")[-1]
+    presigned_url = s3_client.generate_presigned_url(
+        'get_object',
+        Params={'Bucket': bucket, 'Key': object_name},
+        ExpiresIn=3600
+    )
+    input_embedding = (song_name, genre, presigned_url)
+
+    cur.execute("""
                 SELECT song_name, genre, s3_url, (embedding <-> %s) AS distance
                 FROM song_embeddings
+                WHERE (embedding <-> %s) > 0.0
                 ORDER BY embedding <-> %s
                 LIMIT 5;
-                """, (embedding, embedding))
+                """, (embedding, embedding, embedding))
     rows = cur.fetchall()
-    
+
     embeddings_with_distances = []
     for row in rows:
         song_name, genre, s3_url, distance = row
@@ -101,7 +118,7 @@ def retrieve_similar_embeddings(conn, embedding, s3_client, bucket):
         embeddings_with_distances.append((song_name, genre, presigned_url, distance))
     
     cur.close()
-    return embeddings_with_distances
+    return embeddings_with_distances, input_embedding
 
 def upload_to_s3(file_path, bucket_name, object_name):
     s3_client = boto3.client('s3')
