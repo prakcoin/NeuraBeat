@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from .positionalencoding import PositionalEncoding2d
 from .residualblock import ResidualBlock
     
 class EmbeddingModel(nn.Module):

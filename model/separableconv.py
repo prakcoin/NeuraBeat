@@ -1,5 +1,4 @@
 import torch.nn as nn
-import torch.nn.functional as F
 
 # Inspired by: https://github.com/reshalfahsi/separableconv-torch
 class SeparableConv2d(nn.Module):
