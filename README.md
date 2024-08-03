@@ -8,6 +8,8 @@ The below diagram was generated using the torchview library:
 
 ![Architecture Diagram](docs/NeuraBeat%20Model%20Diagram.png)
 
+From torchinfo, the total number of parameters comes out to 78,848.
+
 ## Training
 All training was conducted on Google Colab using PyTorch v2.3.1+cu121. The songs were converted to log scale mel spectrograms, resized, converted to tensors, and normalized. To maximize training results, a batch size of 960 (120 images per class using a balanced batch sampler) was used, along with a margin value of 0.1. This was the primary contributor to learning, as when the batch size increased and the margin value decreased, the loss and average mined triplets decreased. Triplet loss with Euclidean distance and regularized embeddings was employed. The model was trained for 30 epochs using the AdamW optimizer with a learning rate of 0.001 and a weight decay value of 0.01. Cosine annealing was utilized to decay the learning rate, along with AutoClip for gradient clipping. Notebooks for training and data preprocessing are attached in the model/train/ directory.
 
@@ -37,3 +39,4 @@ This project relies on the following repositories:
 - [AutoClip](https://github.com/pseeth/autoclip)
 - [SeparableConv-Torch](https://github.com/reshalfahsi/separableconv-torch)
 - [torchview](https://github.com/mert-kurttutan/torchview)
+- [torchinfo](https://github.com/TylerYep/torchinfo)
